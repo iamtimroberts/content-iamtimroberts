@@ -1,0 +1,25 @@
+comment: '[Enter a description of the script, including what function it performs and any important information users need to know, for example required permissions.].'
+commonfields:
+  id: SigmaRuleConverter
+  version: -1
+dockerimage: docker.io/iamtimroberts/sigma:2.0
+enabled: true
+engineinfo: {}
+mainengineinfo: {}
+name: SigmaRuleConverter
+outputs:
+- contextPath: BaseScript.Output
+  description: '[Enter a description of the data returned in this output.].'
+  type: String
+pswd: ''
+runas: DBotWeakRole
+runonce: false
+script: ''
+scripttarget: 0
+subtype: python3
+tags:
+- basescript
+type: python
+fromversion: 6.10.0
+tests:
+- No tests (auto formatted)
