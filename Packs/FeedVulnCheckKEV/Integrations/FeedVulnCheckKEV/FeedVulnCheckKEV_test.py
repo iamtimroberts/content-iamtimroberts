@@ -1,20 +1,23 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from FeedVulnCheckKEV import VulnCheckFeedClient, fetch_indicators, build_indicators, test_module
+
 
 @pytest.fixture
 def client():
     return VulnCheckFeedClient(base_url="https://api.example.com", verify=True, proxy=False, api_key="test_api_key")
 
+
 def test_client_initialization():
     client = VulnCheckFeedClient(base_url="https://api.example.com", verify=True, proxy=False, api_key="test_api_key")
     assert client.base_url == "https://api.example.com"
-    assert client._verify == True
-    assert client._proxy == False
+    assert client._verify is True
+    assert client._proxy is False
     assert client._headers == {
         "Authorization": "Bearer test_api_key",
         "Accept": "application/json"
     }
+
 
 @patch('VulnCheckFeed.BaseClient._http_request')
 def test_fetch_vulnerabilities(mock_http_request, client):
@@ -26,6 +29,7 @@ def test_fetch_vulnerabilities(mock_http_request, client):
         url_suffix="v3/index/vulncheck-kev",
         params={"limit": 10}
     )
+
 
 def test_build_indicators():
     cves = [
@@ -59,6 +63,7 @@ def test_build_indicators():
     assert indicators[0]["type"] == "CVE"
     assert indicators[0]["fields"]["cvemodified"] == "2021-01-01T00:00:00.000Z"
 
+
 @patch('VulnCheckFeed.VulnCheckFeedClient.fetch_vulnerabilities')
 def test_fetch_indicators(mock_fetch_vulnerabilities, client):
     mock_fetch_vulnerabilities.return_value = {
@@ -77,7 +82,8 @@ def test_fetch_indicators(mock_fetch_vulnerabilities, client):
     indicators, new_last_run = fetch_indicators(client, last_run, 100)
     assert len(indicators) == 1
     assert new_last_run["last_fetch_date"] == "2021-01-01T00:00:00.000Z"
-    assert new_last_run["is_first_run"] == False
+    assert new_last_run["is_first_run"] is False
+
 
 @patch('VulnCheckFeed.VulnCheckFeedClient.fetch_vulnerabilities')
 def test_test_module(mock_fetch_vulnerabilities, client):
@@ -86,12 +92,14 @@ def test_test_module(mock_fetch_vulnerabilities, client):
     assert result == "ok"
     mock_fetch_vulnerabilities.assert_called_once_with(params={"limit": 1})
 
+
 @patch('VulnCheckFeed.VulnCheckFeedClient.fetch_vulnerabilities')
 def test_test_module_failure(mock_fetch_vulnerabilities, client):
     mock_fetch_vulnerabilities.side_effect = Exception("API Error")
     with pytest.raises(Exception) as excinfo:
         test_module(client)
     assert str(excinfo.value) == "API Error"
+
 
 @pytest.mark.parametrize("is_first_run,expected_date_filter", [
     (True, "pubStartDate"),
@@ -111,6 +119,7 @@ def test_fetch_indicators_date_filter(mock_fetch_vulnerabilities, client, is_fir
     call_args = mock_fetch_vulnerabilities.call_args[1]['params']
     assert expected_date_filter in call_args
 
+
 @patch('VulnCheckFeed.VulnCheckFeedClient.fetch_vulnerabilities')
 def test_fetch_indicators_pagination(mock_fetch_vulnerabilities, client):
     mock_fetch_vulnerabilities.side_effect = [
@@ -127,6 +136,7 @@ def test_fetch_indicators_pagination(mock_fetch_vulnerabilities, client):
     indicators, new_last_run = fetch_indicators(client, last_run, 100)
     assert len(indicators) == 2
     assert new_last_run["last_fetch_date"] == "2021-01-02T00:00:00.000Z"
+
 
 def test_build_indicators_edge_cases():
     cves = [
@@ -149,7 +159,8 @@ def test_build_indicators_edge_cases():
     assert len(indicators) == 2  # Should skip the one without _timestamp
     assert indicators[0]["value"] == "Unknown"
     assert indicators[1]["value"] == "CVE-2021-5678"
-    assert indicators[1]["fields"]["cisakev"] == True
+    assert indicators[1]["fields"]["cisakev"] is True
+
 
 @patch('VulnCheckFeed.demisto.getLastRun')
 @patch('VulnCheckFeed.demisto.setLastRun')
@@ -160,10 +171,10 @@ def test_fetch_indicators_command(mock_fetch_indicators, mock_set_last_run, mock
         [{"value": "CVE-2021-1234", "type": "CVE"}],
         {"last_fetch_date": "2021-01-02T00:00:00.000Z", "is_first_run": False}
     )
-    
+
     from VulnCheckFeed import fetch_indicators_command
     indicators = fetch_indicators_command(client, 100)
-    
+
     assert len(indicators) == 1
     assert indicators[0]["value"] == "CVE-2021-1234"
     mock_set_last_run.assert_called_once_with({"last_fetch_date": "2021-01-02T00:00:00.000Z", "is_first_run": False})
